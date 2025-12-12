@@ -2,6 +2,13 @@ import express from "express";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import cors from "cors";
+import multer from "multer";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
@@ -19,6 +26,35 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, "uploads");
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, "resume-" + uniqueSuffix + path.extname(file.originalname));
+  },
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === "application/pdf") {
+      cb(null, true);
+    } else {
+      cb(new Error("Only PDF files are allowed"), false);
+    }
+  },
+});
 
 // Configure nodemailer transporter
 // Trim values to handle spaces in .env file
@@ -71,15 +107,39 @@ const escapeHtml = (text) => {
     .replace(/'/g, "&#039;");
 };
 
-// Contact endpoint
-app.post("/contact", async (req, res) => {
+// Contact endpoint with error handling for multer
+app.post("/contact", (req, res, next) => {
+  upload.single("resume")(req, res, (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError) {
+        if (err.code === "LIMIT_FILE_SIZE") {
+          return res.status(400).json({
+            success: false,
+            message: "File size too large. Maximum size is 5MB.",
+          });
+        }
+        return res.status(400).json({
+          success: false,
+          message: "File upload error: " + err.message,
+        });
+      }
+      return res.status(400).json({
+        success: false,
+        message: err.message || "File upload failed",
+      });
+    }
+    next();
+  });
+}, async (req, res) => {
+  let resumePath = null;
+  
   try {
     console.log("Received contact form submission:", req.body);
+    console.log("Resume file:", req.file ? req.file.filename : "No file uploaded");
 
     const {
       fullName,
       contactNumber,
-      portfolioLink,
       education,
       noticePeriod,
       email,
@@ -87,6 +147,11 @@ app.post("/contact", async (req, res) => {
       currentCTC,
       experience,
     } = req.body;
+
+    // Store resume file path if uploaded
+    if (req.file) {
+      resumePath = req.file.path;
+    }
 
     // Validate required fields
     if (
@@ -131,7 +196,6 @@ app.post("/contact", async (req, res) => {
     const safeExperience = escapeHtml(experience);
     const safeCurrentCTC = escapeHtml(currentCTC);
     const safeNoticePeriod = escapeHtml(noticePeriod);
-    const safePortfolioLink = portfolioLink ? escapeHtml(portfolioLink) : "";
     const safeLinkedinUrl = linkedinUrl ? escapeHtml(linkedinUrl) : "";
 
     // Email options
@@ -140,6 +204,14 @@ app.post("/contact", async (req, res) => {
       from: smtpMail,
       to: recipientEmail,
       subject: `Application Form Submission from ${safeFullName}`,
+      attachments: resumePath
+        ? [
+            {
+              filename: req.file.originalname,
+              path: resumePath,
+            },
+          ]
+        : [],
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
           <h2 style="color: #1f2937; border-bottom: 2px solid #3b82f6; padding-bottom: 10px;">New Application Form Submission</h2>
@@ -159,10 +231,10 @@ app.post("/contact", async (req, res) => {
                 <td style="padding: 8px 0; font-weight: bold; color: #374151;">Email Address:</td>
                 <td style="padding: 8px 0; color: #1f2937;">${safeEmail}</td>
               </tr>
-              ${safePortfolioLink ? `
+              ${req.file ? `
               <tr>
-                <td style="padding: 8px 0; font-weight: bold; color: #374151;">Portfolio/Resume Link:</td>
-                <td style="padding: 8px 0; color: #1f2937;"><a href="${safePortfolioLink}" style="color: #3b82f6; text-decoration: none;">${safePortfolioLink}</a></td>
+                <td style="padding: 8px 0; font-weight: bold; color: #374151;">Resume:</td>
+                <td style="padding: 8px 0; color: #1f2937;">Resume attached (${req.file.originalname})</td>
               </tr>
               ` : ''}
               ${safeLinkedinUrl ? `
@@ -204,7 +276,7 @@ app.post("/contact", async (req, res) => {
         Full Name: ${fullName}
         Contact Number: ${contactNumber}
         Email Address: ${email}
-        ${portfolioLink ? `Portfolio/Resume Link: ${portfolioLink}` : ''}
+        ${req.file ? `Resume: ${req.file.originalname} (attached)` : ''}
         ${linkedinUrl ? `LinkedIn URL: ${linkedinUrl}` : ''}
         
         Professional Information:
@@ -220,12 +292,23 @@ app.post("/contact", async (req, res) => {
     const info = await transporter.sendMail(mailOptions);
     console.log("Email sent successfully:", info.messageId);
 
+    // Clean up uploaded file after sending email
+    if (resumePath && fs.existsSync(resumePath)) {
+      fs.unlinkSync(resumePath);
+      console.log("Resume file deleted after sending email");
+    }
+
     res.status(200).json({
       success: true,
       message: "Application submitted successfully",
       messageId: info.messageId,
     });
   } catch (error) {
+    // Clean up uploaded file on error
+    if (resumePath && fs.existsSync(resumePath)) {
+      fs.unlinkSync(resumePath);
+      console.log("Resume file deleted due to error");
+    }
     console.error("Error sending email:", error);
     console.error("Error stack:", error.stack);
     

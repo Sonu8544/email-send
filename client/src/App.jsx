@@ -4,7 +4,6 @@ function App() {
   const [formData, setFormData] = useState({
     fullName: "",
     contactNumber: "",
-    portfolioLink: "",
     education: "",
     noticePeriod: "",
     email: "",
@@ -12,6 +11,7 @@ function App() {
     currentCTC: "",
     experience: "",
   });
+  const [resumeFile, setResumeFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: "", message: "" });
 
@@ -22,18 +22,56 @@ function App() {
     });
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      if (file.type !== "application/pdf") {
+        setStatus({
+          type: "error",
+          message: "Please upload a PDF file only.",
+        });
+        e.target.value = "";
+        return;
+      }
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setStatus({
+          type: "error",
+          message: "File size must be less than 5MB.",
+        });
+        e.target.value = "";
+        return;
+      }
+      setResumeFile(file);
+      setStatus({ type: "", message: "" });
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setStatus({ type: "", message: "" });
 
     try {
+      // Create FormData for file upload
+      const formDataToSend = new FormData();
+      formDataToSend.append("fullName", formData.fullName);
+      formDataToSend.append("contactNumber", formData.contactNumber);
+      formDataToSend.append("education", formData.education);
+      formDataToSend.append("noticePeriod", formData.noticePeriod);
+      formDataToSend.append("email", formData.email);
+      formDataToSend.append("linkedinUrl", formData.linkedinUrl);
+      formDataToSend.append("currentCTC", formData.currentCTC);
+      formDataToSend.append("experience", formData.experience);
+      
+      if (resumeFile) {
+        formDataToSend.append("resume", resumeFile);
+      }
+
       const response = await fetch("http://localhost:3000/contact", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
+        body: formDataToSend,
       });
 
       const data = await response.json();
@@ -46,7 +84,6 @@ function App() {
         setFormData({
           fullName: "",
           contactNumber: "",
-          portfolioLink: "",
           education: "",
           noticePeriod: "",
           email: "",
@@ -54,6 +91,10 @@ function App() {
           currentCTC: "",
           experience: "",
         });
+        setResumeFile(null);
+        // Reset file input
+        const fileInput = document.getElementById("resume");
+        if (fileInput) fileInput.value = "";
       } else {
         setStatus({
           type: "error",
@@ -122,23 +163,27 @@ function App() {
                   />
                 </div>
 
-                {/* Portfolio/Resume Link */}
+                {/* Resume Upload */}
                 <div>
                   <label
-                    htmlFor="portfolioLink"
+                    htmlFor="resume"
                     className="block text-sm font-medium text-gray-700 mb-2"
                   >
-                    Add Your Portfolio / Resume Link
+                    Upload Your Resume (PDF)
                   </label>
                   <input
-                    type="url"
-                    id="portfolioLink"
-                    name="portfolioLink"
-                    value={formData.portfolioLink}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
-                    placeholder="https://www.example.com/portfolio-or-resume"
+                    type="file"
+                    id="resume"
+                    name="resume"
+                    accept=".pdf"
+                    onChange={handleFileChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                   />
+                  {resumeFile && (
+                    <p className="mt-2 text-sm text-gray-600">
+                      Selected: {resumeFile.name} ({(resumeFile.size / 1024).toFixed(2)} KB)
+                    </p>
+                  )}
                 </div>
 
                 {/* Education Level */}
