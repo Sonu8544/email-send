@@ -69,7 +69,7 @@ function App() {
         formDataToSend.append("resume", resumeFile);
       }
 
-      const response = await fetch("http://localhost:3000/contact", {
+      const response = await fetch("https://email-send-cuj9.onrender.com/contact", {
         method: "POST",
         body: formDataToSend,
       });
