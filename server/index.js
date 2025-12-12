@@ -23,7 +23,10 @@ console.log("SENDER_EMAIL:", process.env.SENDER_EMAIL || "not set");
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: ["https://email-send-three.vercel.app", "https://wellnessextract.com", "https://wellnessextract.in"],
+  credentials: true,
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
