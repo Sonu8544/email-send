@@ -111,6 +111,7 @@ const escapeHtml = (text) => {
 app.post("/contact", (req, res, next) => {
   upload.single("resume")(req, res, (err) => {
     if (err) {
+      console.error("Multer error:", err);
       if (err instanceof multer.MulterError) {
         if (err.code === "LIMIT_FILE_SIZE") {
           return res.status(400).json({
@@ -134,10 +135,27 @@ app.post("/contact", (req, res, next) => {
   let resumePath = null;
   
   try {
-    console.log("Received contact form submission:", req.body);
-    console.log("Resume file:", req.file ? req.file.filename : "No file uploaded");
+    console.log("=== Contact Form Submission ===");
+    console.log("Request body:", req.body);
+    console.log("Request file:", req.file ? {
+      filename: req.file.filename,
+      originalname: req.file.originalname,
+      size: req.file.size,
+      path: req.file.path
+    } : "No file uploaded");
+    console.log("Body keys:", Object.keys(req.body));
 
-    const {
+    // Extract form data - handle both string and object formats
+    const fullName = req.body.fullName || "";
+    const contactNumber = req.body.contactNumber || "";
+    const education = req.body.education || "";
+    const noticePeriod = req.body.noticePeriod || "";
+    const email = req.body.email || "";
+    const linkedinUrl = req.body.linkedinUrl || "";
+    const currentCTC = req.body.currentCTC || "";
+    const experience = req.body.experience || "";
+
+    console.log("Extracted values:", {
       fullName,
       contactNumber,
       education,
@@ -146,7 +164,7 @@ app.post("/contact", (req, res, next) => {
       linkedinUrl,
       currentCTC,
       experience,
-    } = req.body;
+    });
 
     // Store resume file path if uploaded
     if (req.file) {
@@ -154,19 +172,20 @@ app.post("/contact", (req, res, next) => {
     }
 
     // Validate required fields
-    if (
-      !fullName ||
-      !contactNumber ||
-      !education ||
-      !noticePeriod ||
-      !email ||
-      !currentCTC ||
-      !experience
-    ) {
-      console.log("Validation failed - missing required fields");
+    const missingFields = [];
+    if (!fullName || fullName.trim() === "") missingFields.push("Full Name");
+    if (!contactNumber || contactNumber.trim() === "") missingFields.push("Contact Number");
+    if (!education || education.trim() === "") missingFields.push("Education");
+    if (!noticePeriod || noticePeriod.trim() === "") missingFields.push("Notice Period");
+    if (!email || email.trim() === "") missingFields.push("Email");
+    if (!currentCTC || currentCTC.trim() === "") missingFields.push("Current CTC");
+    if (!experience || experience.trim() === "") missingFields.push("Experience");
+
+    if (missingFields.length > 0) {
+      console.log("Validation failed - missing required fields:", missingFields);
       return res.status(400).json({
         success: false,
-        message: "Please fill all required fields",
+        message: `Please fill all required fields: ${missingFields.join(", ")}`,
       });
     }
 
@@ -189,101 +208,64 @@ app.post("/contact", (req, res, next) => {
     }
 
     // Escape HTML to prevent XSS and template issues
-    const safeFullName = escapeHtml(fullName);
-    const safeContactNumber = escapeHtml(contactNumber);
-    const safeEmail = escapeHtml(email);
-    const safeEducation = escapeHtml(education);
-    const safeExperience = escapeHtml(experience);
-    const safeCurrentCTC = escapeHtml(currentCTC);
-    const safeNoticePeriod = escapeHtml(noticePeriod);
-    const safeLinkedinUrl = linkedinUrl ? escapeHtml(linkedinUrl) : "";
+    const safeFullName = escapeHtml(String(fullName || ""));
+    const safeContactNumber = escapeHtml(String(contactNumber || ""));
+    const safeEmail = escapeHtml(String(email || ""));
+    const safeEducation = escapeHtml(String(education || ""));
+    const safeExperience = escapeHtml(String(experience || ""));
+    const safeCurrentCTC = escapeHtml(String(currentCTC || ""));
+    const safeNoticePeriod = escapeHtml(String(noticePeriod || ""));
+    const safeLinkedinUrl = linkedinUrl ? escapeHtml(String(linkedinUrl)) : "";
 
     // Email options
     const recipientEmail = (process.env.SENDER_EMAIL || smtpMail).trim();
+    
+    // Prepare attachments
+    const attachments = [];
+    if (resumePath && req.file && fs.existsSync(resumePath)) {
+      attachments.push({
+        filename: req.file.originalname || "resume.pdf",
+        path: resumePath,
+      });
+      console.log("Resume attachment prepared:", req.file.originalname);
+    }
+    
     const mailOptions = {
       from: smtpMail,
       to: recipientEmail,
       subject: `Application Form Submission from ${safeFullName}`,
-      attachments: resumePath
-        ? [
-            {
-              filename: req.file.originalname,
-              path: resumePath,
-            },
-          ]
-        : [],
+      attachments: attachments,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
-          <h2 style="color: #1f2937; border-bottom: 2px solid #3b82f6; padding-bottom: 10px;">New Application Form Submission</h2>
-          
-          <div style="background-color: white; padding: 20px; border-radius: 8px; margin-top: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-            <h3 style="color: #3b82f6; margin-top: 0;">Personal Information</h3>
-            <table style="width: 100%; border-collapse: collapse;">
-              <tr>
-                <td style="padding: 8px 0; font-weight: bold; color: #374151; width: 40%;">Full Name:</td>
-                <td style="padding: 8px 0; color: #1f2937;">${safeFullName}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; font-weight: bold; color: #374151;">Contact Number:</td>
-                <td style="padding: 8px 0; color: #1f2937;">${safeContactNumber}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; font-weight: bold; color: #374151;">Email Address:</td>
-                <td style="padding: 8px 0; color: #1f2937;">${safeEmail}</td>
-              </tr>
-              ${req.file ? `
-              <tr>
-                <td style="padding: 8px 0; font-weight: bold; color: #374151;">Resume:</td>
-                <td style="padding: 8px 0; color: #1f2937;">Resume attached (${req.file.originalname})</td>
-              </tr>
-              ` : ''}
-              ${safeLinkedinUrl ? `
-              <tr>
-                <td style="padding: 8px 0; font-weight: bold; color: #374151;">LinkedIn URL:</td>
-                <td style="padding: 8px 0; color: #1f2937;"><a href="${safeLinkedinUrl}" style="color: #3b82f6; text-decoration: none;">${safeLinkedinUrl}</a></td>
-              </tr>
-              ` : ''}
-            </table>
-          </div>
-
-          <div style="background-color: white; padding: 20px; border-radius: 8px; margin-top: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-            <h3 style="color: #3b82f6; margin-top: 0;">Professional Information</h3>
-            <table style="width: 100%; border-collapse: collapse;">
-              <tr>
-                <td style="padding: 8px 0; font-weight: bold; color: #374151; width: 40%;">Highest Education:</td>
-                <td style="padding: 8px 0; color: #1f2937;">${safeEducation}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; font-weight: bold; color: #374151;">Experience:</td>
-                <td style="padding: 8px 0; color: #1f2937;">${safeExperience}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; font-weight: bold; color: #374151;">Current CTC:</td>
-                <td style="padding: 8px 0; color: #1f2937;">${safeCurrentCTC}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; font-weight: bold; color: #374151;">Notice Period:</td>
-                <td style="padding: 8px 0; color: #1f2937;">${safeNoticePeriod}</td>
-              </tr>
-            </table>
-          </div>
-        </div>
+        <h2>New Application Form Submission</h2>
+        
+        <h3>Personal Information</h3>
+        <p><strong>Full Name:</strong> ${safeFullName}</p>
+        <p><strong>Contact Number:</strong> ${safeContactNumber}</p>
+        <p><strong>Email Address:</strong> ${safeEmail}</p>
+        ${req.file ? `<p><strong>Resume:</strong> Attached (${req.file.originalname})</p>` : ''}
+        ${safeLinkedinUrl ? `<p><strong>LinkedIn URL:</strong> <a href="${safeLinkedinUrl}">${safeLinkedinUrl}</a></p>` : ''}
+        
+        <h3>Professional Information</h3>
+        <p><strong>Highest Education:</strong> ${safeEducation}</p>
+        <p><strong>Experience:</strong> ${safeExperience}</p>
+        <p><strong>Current CTC:</strong> ${safeCurrentCTC}</p>
+        <p><strong>Notice Period:</strong> ${safeNoticePeriod}</p>
       `,
       text: `
         New Application Form Submission
         
         Personal Information:
-        Full Name: ${fullName}
-        Contact Number: ${contactNumber}
-        Email Address: ${email}
-        ${req.file ? `Resume: ${req.file.originalname} (attached)` : ''}
-        ${linkedinUrl ? `LinkedIn URL: ${linkedinUrl}` : ''}
+        Full Name: ${fullName || "N/A"}
+        Contact Number: ${contactNumber || "N/A"}
+        Email Address: ${email || "N/A"}
+        ${req.file ? `Resume: ${req.file.originalname} (attached)` : "Resume: Not provided"}
+        ${linkedinUrl ? `LinkedIn URL: ${linkedinUrl}` : "LinkedIn URL: Not provided"}
         
         Professional Information:
-        Highest Education: ${education}
-        Experience: ${experience}
-        Current CTC: ${currentCTC}
-        Notice Period: ${noticePeriod}
+        Highest Education: ${education || "N/A"}
+        Experience: ${experience || "N/A"}
+        Current CTC: ${currentCTC || "N/A"}
+        Notice Period: ${noticePeriod || "N/A"}
       `,
     };
 
@@ -306,11 +288,20 @@ app.post("/contact", (req, res, next) => {
   } catch (error) {
     // Clean up uploaded file on error
     if (resumePath && fs.existsSync(resumePath)) {
-      fs.unlinkSync(resumePath);
-      console.log("Resume file deleted due to error");
+      try {
+        fs.unlinkSync(resumePath);
+        console.log("Resume file deleted due to error");
+      } catch (unlinkError) {
+        console.error("Error deleting resume file:", unlinkError);
+      }
     }
-    console.error("Error sending email:", error);
+    
+    console.error("=== ERROR DETAILS ===");
+    console.error("Error name:", error.name);
+    console.error("Error message:", error.message);
+    console.error("Error code:", error.code);
     console.error("Error stack:", error.stack);
+    console.error("Full error object:", error);
     
     // Provide more detailed error message
     let errorMessage = "Failed to send email";
@@ -318,6 +309,8 @@ app.post("/contact", (req, res, next) => {
       errorMessage = "Email authentication failed. Please check your SMTP credentials.";
     } else if (error.code === "ECONNECTION") {
       errorMessage = "Could not connect to email server. Please check your SMTP settings.";
+    } else if (error.code === "ETIMEDOUT") {
+      errorMessage = "Connection to email server timed out. Please try again.";
     } else if (error.message) {
       errorMessage = error.message;
     }
@@ -325,7 +318,8 @@ app.post("/contact", (req, res, next) => {
     res.status(500).json({
       success: false,
       message: errorMessage,
-      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+      error: error.message,
+      code: error.code,
     });
   }
 });
