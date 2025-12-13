@@ -12,19 +12,11 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
-// Log environment variables (without sensitive data)
-console.log("Environment check:");
-console.log("SMTP_HOST:", process.env.SMTP_HOST || "not set");
-console.log("SMTP_PORT:", process.env.SMTP_PORT || "not set");
-console.log("SMTP_MAIL:", process.env.SMTP_MAIL ? "set" : "not set");
-console.log("SMTP_PASSWORD:", process.env.SMTP_PASSWORD ? "set" : "not set");
-console.log("SENDER_EMAIL:", process.env.SENDER_EMAIL || "not set");
-
 const app = express();
 
 // Middleware
 app.use(cors({
-  origin: ["https://email-send-three.vercel.app", "https://wellnessextract.com", "https://wellnessextract.in"],
+  origin: ["https://email-send-three.vercel.app", "https://wellnessextract.com", "https://wellnessextract.in", "http://localhost:5173"],
   credentials: true,
 }));
 app.use(express.json());
@@ -69,7 +61,7 @@ const smtpPassword = process.env.SMTP_PASSWORD ? process.env.SMTP_PASSWORD.trim(
 const transporter = nodemailer.createTransport({
   host: smtpHost,
   port: smtpPort,
-  secure: true, // true for 465, false for other ports
+  secure: true,
   auth: {
     user: smtpMail,
     pass: smtpPassword,
