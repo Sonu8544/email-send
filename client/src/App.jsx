@@ -138,7 +138,7 @@ function App() {
                     value={formData.fullName}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#086b92] focus:border-transparent outline-none transition"
                     placeholder="Enter Full Name"
                   />
                 </div>
@@ -158,7 +158,7 @@ function App() {
                     value={formData.contactNumber}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#086b92] focus:border-transparent outline-none transition"
                     placeholder="81234 56789"
                   />
                 </div>
@@ -177,7 +177,7 @@ function App() {
                     name="resume"
                     accept=".pdf"
                     onChange={handleFileChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#086b92] focus:border-transparent outline-none transition file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-[#086b92] hover:file:bg-blue-100"
                   />
                   {resumeFile && (
                     <p className="mt-2 text-sm text-gray-600">
@@ -201,7 +201,7 @@ function App() {
                     value={formData.education}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition appearance-none bg-white"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#086b92] focus:border-transparent outline-none transition appearance-none bg-white"
                   >
                     <option value="">Select Option</option>
                     <option value="High School">High School</option>
@@ -228,7 +228,7 @@ function App() {
                     value={formData.noticePeriod}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition appearance-none bg-white"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#086b92] focus:border-transparent outline-none transition appearance-none bg-white"
                   >
                     <option value="">Select Option</option>
                     <option value="Immediate">Immediate</option>
@@ -259,7 +259,7 @@ function App() {
                     value={formData.email}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#086b92] focus:border-transparent outline-none transition"
                     placeholder="Enter Email Address"
                   />
                 </div>
@@ -278,7 +278,7 @@ function App() {
                     name="linkedinUrl"
                     value={formData.linkedinUrl}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#086b92] focus:border-transparent outline-none transition"
                     placeholder="https://www.linkedin.com/in/username"
                   />
                 </div>
@@ -299,7 +299,7 @@ function App() {
                     value={formData.currentCTC}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#086b92] focus:border-transparent outline-none transition"
                     placeholder="Enter Current CTC"
                   />
                 </div>
@@ -319,7 +319,7 @@ function App() {
                     value={formData.experience}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition appearance-none bg-white"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#086b92] focus:border-transparent outline-none transition appearance-none bg-white"
                   >
                     <option value="">Select Option</option>
                     <option value="0-1 Years">0-1 Years</option>
@@ -334,11 +334,11 @@ function App() {
               </div>
             </div>
 
-            <div className="mt-8">
+            <div className="mt-8 max-w-[200px] mx-auto">
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                className="w-full cursor-pointer bg-[#086b92] text-white py-3 px-4 rounded-lg font-semibold hover:bg-[#086b92]/80 focus:outline-none focus:ring-2 focus:ring-[#086b92] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
                 {loading ? "Submitting..." : "Submit Application"}
               </button>
