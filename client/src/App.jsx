@@ -69,8 +69,8 @@ function App() {
         formDataToSend.append("resume", resumeFile);
       }
 
-      // const response = await fetch("https://15.207.222.228:7777/contact", {
-      const response = await fetch("http://localhost:7777/contact", {
+      const response = await fetch("https://matchconnect.in/api/contact", {
+      // const response = await fetch("http://localhost:7777/contact", {
         method: "POST",
         body: formDataToSend,
       });
